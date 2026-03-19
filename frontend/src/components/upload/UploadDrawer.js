@@ -9,9 +9,28 @@ export function UploadDrawer({ isOpen, onClose }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
   const fileInputRef = useRef(null);
+
   const { uploadVideo, isUploading, uploadProgress, processingState } =
     useVideo();
 
+  // ✅ FIX 1: Define handleUpload FIRST (important)
+  const handleUpload = useCallback(
+    async (file) => {
+      try {
+        await uploadVideo(file);
+        setUploadComplete(true);
+        setTimeout(() => {
+          setUploadComplete(false);
+          onClose();
+        }, 1500);
+      } catch (error) {
+        console.error("Upload failed:", error);
+      }
+    },
+    [uploadVideo, onClose],
+  );
+
+  // ✅ Drag handlers
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -22,6 +41,7 @@ export function UploadDrawer({ isOpen, onClose }) {
     setIsDragging(false);
   }, []);
 
+  // ✅ FIX 2: Now safe (handleUpload already defined)
   const handleDrop = useCallback(
     async (e) => {
       e.preventDefault();
@@ -43,22 +63,6 @@ export function UploadDrawer({ isOpen, onClose }) {
       }
     },
     [handleUpload],
-  );
-
-  const handleUpload = useCallback(
-    async (file) => {
-      try {
-        await uploadVideo(file);
-        setUploadComplete(true);
-        setTimeout(() => {
-          setUploadComplete(false);
-          onClose();
-        }, 1500);
-      } catch (error) {
-        console.error("Upload failed:", error);
-      }
-    },
-    [uploadVideo, onClose],
   );
 
   const handleClose = () => {
@@ -118,7 +122,6 @@ export function UploadDrawer({ isOpen, onClose }) {
             {/* Content */}
             <div className="px-5 pb-8 safe-bottom">
               {uploadComplete ? (
-                /* Success State */
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -136,7 +139,6 @@ export function UploadDrawer({ isOpen, onClose }) {
                   </p>
                 </motion.div>
               ) : isUploading || processingState ? (
-                /* Processing State */
                 <div className="py-4" data-testid="upload-processing">
                   <ProcessingPipeline
                     currentStage={processingState || "uploading"}
@@ -144,7 +146,6 @@ export function UploadDrawer({ isOpen, onClose }) {
                   />
                 </div>
               ) : (
-                /* Upload Zone */
                 <div
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
